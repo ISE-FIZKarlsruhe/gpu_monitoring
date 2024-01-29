@@ -1,6 +1,4 @@
-#!/usr/bin/env pyhton3
-
-import psutil, os
+import os
 
 from data_types import GpuInfo, ProcessInfo
 from helper import fetch_gpu_infos, fetch_process_info, get_host_name
