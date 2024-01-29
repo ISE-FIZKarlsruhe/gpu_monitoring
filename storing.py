@@ -2,8 +2,19 @@ from datetime import datetime
 import os
 import sqlite3
 from typing import List
+from dataclasses import dataclass
 
-from data_types import GpuInfo, ProcessInfo
+
+@dataclass
+class GpuInfo:
+    pid: int
+    gpu_memory: str
+
+
+@dataclass
+class ProcessInfo:
+    pid: int
+    result: str
 
 
 def store_as_csv(
@@ -44,14 +55,12 @@ def store_as_csv(
 
 
 def create_tables(cursor, connection) -> None:
-    cursor.execute(
-        """CREATE TABLE gpu_infos (
+    cursor.executescript(
+        """CREATE TABLE  IF NOT EXISTS  gpu_infos (
             pid, gpu_memory, host_id, timestamp
-        );"""
-    )
-    cursor.execute(
-        """CREATE TABLE process_infos (
-            pid, name, startup_cmd, created_at, status, owner, owner_id, cpu_percentage, memory_percentage, host_id, timestamp
+        );
+        CREATE TABLE IF NOT EXISTS process_infos (
+            pid, pid_info, host_id, timestamp
         );"""
     )
     connection.commit()
@@ -60,7 +69,10 @@ def create_tables(cursor, connection) -> None:
 def insert_gpu_infos(
     cursor, connection, gpu_infos: List[GpuInfo], host_id: str, time_stamp: str
 ) -> None:
-    gpu_info_tuples = [(gpu_info.pid, gpu_info.gpu_memory, host_id, time_stamp) for gpu_info in gpu_infos]
+    gpu_info_tuples = [
+        (gpu_info.pid, gpu_info.gpu_memory, host_id, time_stamp)
+        for gpu_info in gpu_infos
+    ]
 
     cursor.executemany(
         """INSERT INTO gpu_infos VALUES (
@@ -75,25 +87,12 @@ def insert_process_infos(
     cursor, connection, process_infos: List[ProcessInfo], host_id: str, time_stamp: str
 ) -> None:
     process_info_tuples = [
-        (
-            process_info.pid,
-            process_info.name,
-            process_info.cmd,
-            str(process_info.created_at),
-            process_info.status,
-            process_info.owner,
-            process_info.owner_id,
-            process_info.cpu_percentage,
-            process_info.memory_percentage,
-            host_id,
-            time_stamp
-        )
-        for process_info in process_infos
+        (pid, pid_info, host_id, time_stamp) for pid, pid_info in process_infos
     ]
 
     cursor.executemany(
         """INSERT INTO process_infos VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            ?, ?, ?, ?
         );""",
         process_info_tuples,
     )
