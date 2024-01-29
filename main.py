@@ -1,11 +1,11 @@
-import os, time
+import os
+import time
+import logging
 
 from data_types import GpuInfo, ProcessInfo
 from helper import fetch_gpu_infos, fetch_process_info, get_host_name
 from storing import store_as_sqlite
 from typing import List
-
-import logging
 
 if os.environ.get("DEBUG") == "1":
     logging.basicConfig(level=logging.DEBUG)
@@ -26,10 +26,18 @@ if __name__ == "__main__":
     # We expect a list of hostnames that can be SSH'ed into from the account running this script.
     # for convenience, sconfigure shortcut names in the .ssh/config file.
     hosts = os.environ.get("HOSTS")
-    main(hosts)
-    while True:
-        logging.debug("Sleeping for 25 seconds before next run.")
-        time.sleep(25)
-        main(hosts)
-        # In a cronjob, the minimum interval is 1 minute, but we want to run this job every 30 seconds.
-        # That's why we use this trick to get sub-minute intervals.
+
+    # Fork the process
+    pid = os.fork()
+
+    if pid > 0:
+        # Parent process, exit
+        os._exit(0)
+    else:
+        # Child process, continue execution
+        while True:
+            main(hosts)
+            logging.debug("Sleeping for 25 seconds before next run.")
+            time.sleep(25)
+            # In a cronjob, the minimum interval is 1 minute, but we want to run this job every 30 seconds.
+            # That's why we use this trick to get sub-minute intervals.
